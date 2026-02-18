@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Englisch Vokabel-Quiz</title>
+  <style>
+    :root{
+      --bg-blue:#0b4ea2;
+      --bg-red:#a10b0b;
+      --card:#ffffff;
+      --text:#111;
+      --muted:#666;
+      --border:#dcdcdc;
+    }
+    body{
+      font-family:-apple-system, system-ui, Arial;
+      margin:24px;
+      max-width:980px;
+      color:var(--text);
+      background: var(--bg-blue);
+      transition: background 180ms ease;
+    }
+    h1{ margin:0 0 6px; color:#fff; }
+    .sub{ margin:0 0 14px; color:rgba(255,255,255,.85); }
+
+    .topbar{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .badge{
+      color:#fff;
+      font-weight:600;
+      background: rgba(0,0,0,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      padding:8px 12px;
+      border-radius:999px;
+      user-select:none;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+      margin:12px 0;
+    }
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .row > *{ flex:1; min-width:180px; }
+
+    button{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid #cfcfcf;
+      cursor:pointer;
+      background:#fff;
+      font-size:16px;
+    }
+    button:active{ transform: translateY(1px); }
+    button:disabled{ opacity:.55; cursor:not-allowed; }
+
+    input, select, textarea{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid #cfcfcf;
+      width:100%;
+      box-sizing:border-box;
+      font-size:16px;
+    }
+    textarea{ min-height: 220px; resize: vertical; }
+
+    .pill{
+      display:inline-block;
+      padding:6px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      margin-right:8px;
+      background:#fff;
+    }
+    .muted{ color:var(--muted); }
+    .ok{ color:#0a7a2f; font-weight:700; }
+    .bad{ color:#b00020; font-weight:700; }
+
+    #prompt{ font-size:26px; margin:0 0 10px; }
+    #feedback{ margin-top:10px; font-size:16px; min-height:22px; }
+
+    .hearts{ font-size:22px; letter-spacing:2px; user-select:none; margin-top:10px; }
+    .heartOff{ opacity:.25; }
+
+    /* Modal */
+    .overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index: 9999;
+    }
+    .modal{
+      width: min(720px, 100%);
+      background:#fff;
+      border-radius:16px;
+      border:1px solid #e5e5e5;
+      box-shadow: 0 20px 80px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    .modalHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px 14px;
+      border-bottom:1px solid #eee;
+      background:#fafafa;
+    }
+    .modalTitle{ font-weight:800; }
+    .closeX{
+      width:auto;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid #ddd;
+      background:#fff;
+      cursor:pointer;
+      font-weight:800;
+    }
+    .modalBody{ padding:14px; }
+    .gridKeys{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+    .keyCard{
+      border:1px solid #e2e2e2;
+      border-radius:14px;
+      padding:12px;
+      cursor:pointer;
+      background:#fff;
+    }
+    .keyCard:hover{ box-shadow: 0 4px 18px rgba(0,0,0,.08); }
+    .keyName{ font-weight:800; margin-bottom:6px; }
+    .keyDesc{ color:#555; font-size:14px; line-height:1.35; }
+    .activeKey{
+      outline: 3px solid rgba(11,78,162,.25);
+      border-color: rgba(11,78,162,.55);
+    }
+
+    .tiny{ font-size:13px; }
+    .timerPill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:#fff;
+      margin-left:8px;
+      font-weight:700;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1>Englisch Vokabel-Quiz</h1>
+      <p class="sub">Richtig → automatisch weiter. Falsch → Leben weg. Schlüssel über „Schlüsselschloss“ wählen.</p>
+    </div>
+
+    <div class="badge">
+      ❤️ Leben: <span id="livesLeft">7</span> · Verloren: <span id="livesLost">0</span>
+      &nbsp;|&nbsp; Wörter: <span id="totalWords">0</span> · Übrig: <span id="leftWords">0</span>
+      &nbsp;|&nbsp; Modus: <span id="keyModeLabel">Kein</span>
+      <span id="fireTimerPill" class="timerPill" style="display:none;">🔥 Zeit: <span id="fireTime">10</span>s</span>
+      <span id="normalKeyPill" class="timerPill" style="display:none;">🔑 Keys: <span id="normalKeys">0</span></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="btnNext">Start / Nächstes</button>
+      <button id="btnReveal">Lösung</button>
+      <button id="btnHint" disabled>🌍 Tipp</button>
+      <button id="btnSkip" disabled>⏭️ Skip</button>
+      <button id="btnKeyLock">🔒 Schlüsselschloss</button>
+      <button id="btnEditWords">✍️ Neue Wörter eingeben</button>
+      <button id="btnShuffle">Mischen</button>
+      <button id="btnReset">Reset</button>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <select id="mode">
+        <option value="de2en" selected>Deutsch → Englisch</option>
+        <option value="en2de">Englisch → Deutsch</option>
+      </select>
+
+      <label class="muted" style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
+        <input id="ignoreCase" type="checkbox" checked style="width:auto;">
+        Groß/Klein egal
+      </label>
+
+      <label class="muted" style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
+        <input id="ignorePunct" type="checkbox" checked style="width:auto;">
+        Satzzeichen egal
+      </label>
+    </div>
+
+    <p style="margin-top:10px;">
+      <span class="pill">Richtig: <span id="okCount">0</span></span>
+      <span class="pill">Falsch: <span id="badCount">0</span></span>
+      <span class="pill">Streak (für 🔑 normal): <span id="streakCount">0</span>/5</span>
+    </p>
+
+    <div class="hearts" id="heartsBar" aria-label="Leben"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="prompt">Klicke „Start / Nächstes“</h2>
+    <label id="answerLabel" for="answer">Englisch:</label>
+    <input id="answer" autocomplete="off" placeholder="Antwort eintippen und Enter…" />
+    <p id="feedback" class="muted"></p>
+  </div>
+
+  <!-- KeyLock Modal -->
+  <div id="overlayKey" class="overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modalHead">
+        <div class="modalTitle">🔒 Schlüsselschloss</div>
+        <button class="closeX" id="closeKey">X</button>
+      </div>
+      <div class="modalBody">
+        <div class="muted tiny">
+          Wähle EINEN Schlüsselmodus. Du kannst jederzeit wieder auf „Kein“ wechseln.
+        </div>
+
+        <div class="gridKeys" id="keysGrid">
+          <div class="keyCard" data-key="none">
+            <div class="keyName">Kein Schlüssel</div>
+            <div class="keyDesc">Normales Quiz ohne Extras.</div>
+          </div>
+
+          <div class="keyCard" data-key="fire">
+            <div class="keyName">🔥 Feuerschlüssel</div>
+            <div class="keyDesc">10-Sekunden Challenge pro Aufgabe. Wenn Zeit abläuft: Leben −1 und nächste Aufgabe.</div>
+          </div>
+
+          <div class="keyCard" data-key="water">
+            <div class="keyName">💧 Wasserschlüssel</div>
+            <div class="keyDesc">Easy-Mode: Du kannst Aufgaben skippen und das zählt als richtig.</div>
+          </div>
+
+          <div class="keyCard" data-key="earth">
+            <div class="keyName">🌍 Erdschlüssel</div>
+            <div class="keyDesc">Tipps (1./Mitte/Ende-Buchstabe) – aber nur bei 3 zufälligen Wörtern pro Runde.</div>
+          </div>
+
+          <div class="keyCard" data-key="normal">
+            <div class="keyName">🔑 Normaler Schlüssel</div>
+            <div class="keyDesc">Alle 5 richtigen: +1 Skip-Key. Skip zählt als richtig.</div>
+          </div>
+        </div>
+
+        <p class="muted tiny" style="margin-top:10px;">
+          Hinweis: Feuerschlüssel hat automatisch Timer. Wasser/Earth/Normal aktivieren passende Buttons.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Words Modal -->
+  <div id="overlayWords" class="overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modalHead">
+        <div class="modalTitle">✍️ Neue Wörter eingeben</div>
+        <button class="closeX" id="closeWords">X</button>
+      </div>
+      <div class="modalBody">
+        <p class="muted tiny" style="margin-top:0;">
+          Format pro Zeile: <b>Deutsch = Englisch</b> oder <b>Deutsch - Englisch</b> oder <b>Deutsch ; Englisch</b><br>
+          Mehrere richtige Antworten mit <b>|</b>, z.B. <code>fernsehen = watch tv|watch television</code>
+        </p>
+        <textarea id="wordsText" placeholder="Beispiel:
+Apfel = apple
+Badezimmer = bathroom"></textarea>
+        <div class="row" style="margin-top:10px;">
+          <button id="btnSaveWords">Speichern & benutzen</button>
+          <button id="btnClearWords">Zurück zu Standard-Wörtern</button>
+        </div>
+        <p class="muted tiny" style="margin-top:10px;">
+          Wird lokal im Browser gespeichert (nur auf diesem Gerät).
+        </p>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // =========================
+  // Standard-Wörter (deine)
+  // =========================
+  const DEFAULT_VOCAB = [
+    { de: "Viertel vor", en: "quarter to" },
+    { de: "Viertel nach", en: "quarter past" },
+    { de: "halb neun", en: "half past eight" },
+    { de: "am Wochenende", en: "at the weekend|on the weekend" },
+    { de: "am Morgen", en: "in the morning" },
+    { de: "am Nachmittag", en: "in the afternoon" },
+    { de: "am Abend", en: "in the evening" },
+    { de: "Wie spät ist es?", en: "what time is it" },
+    { de: "Wie viel Uhr ist es?", en: "what time is it" },
+    { de: "Uhr", en: "clock" },
+    { de: "um", en: "at" },
+    { de: "bevor", en: "before" },
+    { de: "zu", en: "to" },
+    { de: "sehr", en: "very" },
+    { de: "spät", en: "late" },
+    { de: "beenden", en: "finish" },
+
+    { de: "Beeil dich!", en: "hurry up" },
+    { de: "kommen", en: "come" },
+    { de: "gehen", en: "go" },
+    { de: "trinken", en: "drink" },
+    { de: "aufstehen", en: "get up" },
+    { de: "fernsehen", en: "watch tv|watch television" },
+    { de: "wissen", en: "know" },
+    { de: "vermissen", en: "miss" },
+    { de: "genießen", en: "enjoy" },
+    { de: "schreiben", en: "write" },
+    { de: "essen", en: "eat" },
+    { de: "wollen", en: "want" },
+
+    { de: "Frühstück", en: "breakfast" },
+    { de: "Mittagessen", en: "lunch" },
+    { de: "Saft", en: "juice" },
+    { de: "Wurst", en: "sausage" },
+    { de: "Ei", en: "egg" },
+    { de: "Tee", en: "tea" },
+    { de: "heiß", en: "hot" },
+    { de: "Messer", en: "knife" },
+    { de: "Gabel", en: "fork" },
+    { de: "Teller", en: "plate" },
+    { de: "Löffel", en: "spoon" },
+    { de: "Tasse", en: "cup|mug" },
+
+    { de: "Badezimmer", en: "bathroom" },
+    { de: "Schlüssel", en: "key" },
+    { de: "Tasche", en: "bag" },
+    { de: "zurück", en: "back" },
+    { de: "Kopf", en: "head" },
+    { de: "Mund", en: "mouth" },
+    { de: "Nase", en: "nose" },
+    { de: "Bürste", en: "brush" },
+    { de: "zeichnen", en: "draw" },
+    { de: "schmutzig", en: "dirty" },
+    { de: "sauber", en: "clean" },
+    { de: "mehlig", en: "mealy" },
+    { de: "hässlich", en: "ugly" },
+    { de: "gut aussehend", en: "good-looking|good looking" },
+    { de: "groß (tall)", en: "tall" },
+    { de: "groß (big)", en: "big|large" },
+    { de: "stark", en: "strong" },
+    { de: "Höhe", en: "height" },
+    { de: "langweilig", en: "boring" },
+    { de: "hungrig", en: "hungry" },
+    { de: "alt", en: "old" },
+    { de: "müde", en: "tired" },
+
+    { de: "Unterricht", en: "lesson|class" },
+    { de: "Fach", en: "subject" },
+    { de: "Englisch", en: "english" },
+    { de: "gut sein in etw.", en: "be good at" },
+    { de: "Stundenplan", en: "timetable|schedule" },
+    { de: "Mathe", en: "maths|math" },
+    { de: "Mathematik", en: "maths|math" },
+    { de: "Dienstag", en: "tuesday" },
+    { de: "Mittwoch", en: "wednesday" },
+    { de: "Donnerstag", en: "thursday" },
+  ];
+
+  // =========================
+  // Storage
+  // =========================
+  const LS_KEY_VOCAB = "vocab_custom_v1";
+  const LS_KEY_MODE  = "key_mode_v1";
+
+  function loadVocab() {
+    try {
+      const raw = localStorage.getItem(LS_KEY_VOCAB);
+      if (!raw) return DEFAULT_VOCAB.slice();
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_VOCAB.slice();
+      // basic validation
+      return parsed
+        .filter(x => x && typeof x.de === "string" && typeof x.en === "string")
+        .map(x => ({ de: x.de.trim(), en: x.en.trim() }))
+        .filter(x => x.de && x.en);
+    } catch {
+      return DEFAULT_VOCAB.slice();
+    }
+  }
+
+  function saveVocab(arr) {
+    localStorage.setItem(LS_KEY_VOCAB, JSON.stringify(arr));
+  }
+
+  function clearVocab() {
+    localStorage.removeItem(LS_KEY_VOCAB);
+  }
+
+  function loadKeyMode() {
+    const m = localStorage.getItem(LS_KEY_MODE);
+    return (m === "fire" || m === "water" || m === "earth" || m === "normal" || m === "none") ? m : "none";
+  }
+
+  function saveKeyMode(m) {
+    localStorage.setItem(LS_KEY_MODE, m);
+  }
+
+  // =========================
+  // Settings
+  // =========================
+  const MAX_LIVES = 7;
+  const NORMAL_KEY_EVERY = 5; // 5 richtige -> 1 normaler key
+  const FIRE_SECONDS = 10;
+
+  // =========================
+  // State
+  // =========================
+  let vocab = loadVocab();
+  let pool = [];
+  let current = null;
+  let ok = 0, bad = 0;
+  let lives = MAX_LIVES;
+
+  let keyMode = loadKeyMode(); // none | fire | water | earth | normal
+
+  // normal keys
+  let streak = 0;
+  let normalKeys = 0;
+
+  // earth tips: only 3 words per round get tips
+  let earthTipSet = new Set();
+
+  // fire timer
+  let fireTimer = null;
+  let fireTimeLeft = FIRE_SECONDS;
+
+  // =========================
+  // Elements
+  // =========================
+  const elPrompt = document.getElementById('prompt');
+  const elAnswer = document.getElementById('answer');
+  const elAnswerLabel = document.getElementById('answerLabel');
+  const elFeedback = document.getElementById('feedback');
+
+  const elOk = document.getElementById('okCount');
+  const elBad = document.getElementById('badCount');
+  const elStreak = document.getElementById('streakCount');
+
+  const elLivesLeft = document.getElementById('livesLeft');
+  const elLivesLost = document.getElementById('livesLost');
+  const elHearts = document.getElementById('heartsBar');
+
+  const elTotalWords = document.getElementById('totalWords');
+  const elLeftWords = document.getElementById('leftWords');
+
+  const elMode = document.getElementById('mode');
+  const elIgnoreCase = document.getElementById('ignoreCase');
+  const elIgnorePunct = document.getElementById('ignorePunct');
+
+  const elKeyModeLabel = document.getElementById('keyModeLabel');
+  const elFireTimerPill = document.getElementById('fireTimerPill');
+  const elFireTime = document.getElementById('fireTime');
+  const elNormalKeyPill = document.getElementById('normalKeyPill');
+  const elNormalKeys = document.getElementById('normalKeys');
+
+  const btnHint = document.getElementById('btnHint');
+  const btnSkip = document.getElementById('btnSkip');
+
+  // modals
+  const overlayKey = document.getElementById('overlayKey');
+  const overlayWords = document.getElementById('overlayWords');
+  const keysGrid = document.getElementById('keysGrid');
+
+  const wordsText = document.getElementById('wordsText');
+
+  // =========================
+  // Utils
+  // =========================
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function normalize(s) {
+    let t = (s ?? "").trim();
+    if (elIgnoreCase.checked) t = t.toLowerCase();
+    if (elIgnorePunct.checked) t = t.replace(/[.,!?;:()"'´`]/g, "");
+    t = t.replace(/\s+/g, " ");
+    return t;
+  }
+
+  function setBgBlue(){ document.body.style.background = "var(--bg-blue)"; }
+  function setBgRed(){ document.body.style.background = "var(--bg-red)"; }
+
+  function setLabels() {
+    elAnswerLabel.textContent = (elMode.value === "de2en") ? "Englisch:" : "Deutsch:";
+  }
+
+  function getQA(entry) {
+    if (elMode.value === "de2en") {
+      return { question: entry.de, answers: entry.en.split("|").map(normalize), solutionText: entry.en };
+    } else {
+      return { question: entry.en, answers: entry.de.split("|").map(normalize), solutionText: entry.de };
+    }
+  }
+
+  function updateCounters() {
+    elOk.textContent = ok;
+    elBad.textContent = bad;
+
+    elTotalWords.textContent = String(vocab.length);
+    elLeftWords.textContent = String(pool.length + (current ? 1 : 0));
+
+    elStreak.textContent = String(streak);
+    elNormalKeys.textContent = String(normalKeys);
+  }
+
+  function renderHearts() {
+    const lost = MAX_LIVES - lives;
+    elLivesLeft.textContent = String(lives);
+    elLivesLost.textContent = String(lost);
+
+    let html = "";
+    for (let i = 0; i < MAX_LIVES; i++) {
+      html += `<span class="${i < lives ? "" : "heartOff"}">❤️</span>`;
+    }
+    elHearts.innerHTML = html;
+  }
+
+  function stopFireTimer() {
+    if (fireTimer) {
+      clearInterval(fireTimer);
+      fireTimer = null;
+    }
+    elFireTimerPill.style.display = "none";
+  }
+
+  function startFireTimer() {
+    stopFireTimer();
+    if (keyMode !== "fire" || !current) return;
+
+    fireTimeLeft = FIRE_SECONDS;
+    elFireTime.textContent = String(fireTimeLeft);
+    elFireTimerPill.style.display = "inline-flex";
+
+    fireTimer = setInterval(() => {
+      fireTimeLeft--;
+      elFireTime.textContent = String(fireTimeLeft);
+
+      if (fireTimeLeft <= 0) {
+        // Time up -> life -1, next
+        clearInterval(fireTimer);
+        fireTimer = null;
+        elFireTimerPill.style.display = "none";
+
+        lives = Math.max(0, lives - 1);
+        renderHearts();
+        setBgRed();
+
+        elFeedback.innerHTML = `<span class="bad">🔥 Zeit abgelaufen.</span> Leben −1.`;
+
+        current = null;
+        updateCounters();
+
+        if (lives <= 0) {
+          gameOver();
+        } else {
+          setTimeout(nextWord, 650);
+        }
+      }
+    }, 1000);
+  }
+
+  function applyKeyModeUI() {
+    // label
+    const label = (keyMode === "none") ? "Kein"
+      : (keyMode === "fire") ? "Feuer"
+      : (keyMode === "water") ? "Wasser"
+      : (keyMode === "earth") ? "Erde"
+      : "Normal";
+    elKeyModeLabel.textContent = label;
+
+    // pills / buttons
+    elNormalKeyPill.style.display = (keyMode === "normal") ? "inline-flex" : "none";
+    if (keyMode !== "fire") stopFireTimer();
+
+    // hint only on earth
+    btnHint.disabled = !(keyMode === "earth" && !!current);
+    // skip on water or normal (needs key)
+    if (keyMode === "water") {
+      btnSkip.disabled = !current;
+    } else if (keyMode === "normal") {
+      btnSkip.disabled = !(current && normalKeys > 0);
+    } else {
+      btnSkip.disabled = true;
+    }
+  }
+
+  function chooseEarthTipWords() {
+    earthTipSet = new Set();
+    if (vocab.length <= 3) {
+      vocab.forEach(v => earthTipSet.add(v.de + "||" + v.en));
+      return;
+    }
+    const copy = shuffle(vocab.slice());
+    for (let i = 0; i < 3; i++) {
+      const v = copy[i];
+      earthTipSet.add(v.de + "||" + v.en);
+    }
+  }
+
+  function getHintForCurrent() {
+    if (!current) return null;
+    const qa = getQA(current);
+    // We hint the target answer string in the current direction:
+    // If de2en -> hint english solution; else hint german solution.
+    const target = (elMode.value === "de2en") ? current.en.split("|")[0] : current.de.split("|")[0];
+    const t = target.trim();
+    if (t.length === 0) return null;
+
+    // only for 3 random words in earth mode
+    const key = current.de + "||" + current.en;
+    if (!earthTipSet.has(key)) return { allowed:false, text:"Für dieses Wort gibt’s keinen Tipp (nur 3 pro Runde)." };
+
+    const clean = t.replace(/\s+/g, " ");
+    const first = clean[0] ?? "";
+    const mid = clean[Math.floor((clean.length - 1) / 2)] ?? "";
+    const last = clean[clean.length - 1] ?? "";
+    return {
+      allowed:true,
+      text:`Tipp: Anfang <b>${escapeHtml(first)}</b> · Mitte <b>${escapeHtml(mid)}</b> · Ende <b>${escapeHtml(last)}</b>`
+    };
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    })[s]);
+  }
+
+  // =========================
+  // Game
+  // =========================
+  function gameOver() {
+    stopFireTimer();
+    current = null;
+    elPrompt.textContent = "Game Over (keine Herzen mehr).";
+    elFeedback.innerHTML = `Score: <span class="ok">${ok} richtig</span> · <span class="bad">${bad} falsch</span>. Drück „Reset“.`;
+    elAnswer.value = "";
+    elAnswer.blur();
+    btnHint.disabled = true;
+    btnSkip.disabled = true;
+  }
+
+  function startRound(resetScore = false) {
+    pool = shuffle(vocab.slice());
+    current = null;
+
+    stopFireTimer();
+    chooseEarthTipWords();
+
+    if (resetScore) {
+      ok = 0; bad = 0;
+      lives = MAX_LIVES;
+      streak = 0;
+      normalKeys = 0;
+    }
+
+    setBgBlue();
+    setLabels();
+    elFeedback.textContent = "Bereit.";
+    updateCounters();
+    renderHearts();
+    applyKeyModeUI();
+  }
+
+  function nextWord() {
+    stopFireTimer();
+
+    if (lives <= 0) { gameOver(); return; }
+
+    if (pool.length === 0) {
+      current = null;
+      elPrompt.textContent = "Fertig! (Alle Wörter durch)";
+      elFeedback.innerHTML = `Score: <span class="ok">${ok} richtig</span> · <span class="bad">${bad} falsch</span>.`;
+      updateCounters();
+      applyKeyModeUI();
+      return;
+    }
+
+    current = pool.pop();
+    const qa = getQA(current);
+    elPrompt.textContent = `Übersetze: ${qa.question}`;
+    elAnswer.value = "";
+    elFeedback.textContent = "";
+    setBgBlue();
+
+    updateCounters();
+    applyKeyModeUI();
+
+    // fire timer starts for each new question
+    if (keyMode === "fire") startFireTimer();
+
+    elAnswer.focus();
+  }
+
+  function handleCorrect() {
+    stopFireTimer();
+    ok++;
+    setBgBlue();
+
+    if (keyMode === "normal") {
+      streak++;
+      if (streak >= NORMAL_KEY_EVERY) {
+        normalKeys++;
+        streak = 0;
+      }
+    }
+
+    elFeedback.innerHTML = `<span class="ok">Richtig.</span>`;
+    current = null;
+
+    updateCounters();
+    applyKeyModeUI();
+
+    setTimeout(nextWord, 350);
+  }
+
+  function handleWrong(secondTryOnly = false) {
+    // we do 1 attempt only (simpler): wrong => life-1 immediately
+    // You had earlier versions with 2 tries; you didn’t ask for it now.
+    stopFireTimer();
+
+    bad++;
+    lives = Math.max(0, lives - 1);
+    renderHearts();
+    setBgRed();
+
+    // reset streak for normal keys (optional but fair)
+    if (keyMode === "normal") streak = 0;
+
+    const qa = getQA(current);
+    elFeedback.innerHTML = `<span class="bad">Falsch.</span> Lösung: <b>${qa.solutionText}</b>`;
+
+    current = null;
+    updateCounters();
+    applyKeyModeUI();
+
+    if (lives <= 0) {
+      setTimeout(gameOver, 350);
+    } else {
+      setTimeout(nextWord, 650);
+    }
+  }
+
+  function checkAnswer() {
+    if (!current) return;
+    if (lives <= 0) { gameOver(); return; }
+
+    const qa = getQA(current);
+    const user = normalize(elAnswer.value);
+
+    if (qa.answers.includes(user)) {
+      handleCorrect();
+    } else {
+      handleWrong();
+    }
+  }
+
+  function reveal() {
+    if (!current) return;
+    const qa = getQA(current);
+    elFeedback.innerHTML = `Lösung: <b>${qa.solutionText}</b>`;
+  }
+
+  function doSkip() {
+    if (!current) return;
+
+    if (keyMode === "water") {
+      // Skip counts as correct
+      stopFireTimer();
+      ok++;
+      setBgBlue();
+      elFeedback.innerHTML = `<span class="ok">💧 Skip zählt als richtig.</span>`;
+      current = null;
+      updateCounters();
+      applyKeyModeUI();
+      setTimeout(nextWord, 350);
+      return;
+    }
+
+    if (keyMode === "normal") {
+      if (normalKeys <= 0) return;
+      stopFireTimer();
+      normalKeys--;
+      ok++;
+      setBgBlue();
+      elFeedback.innerHTML = `<span class="ok">🔑 Skip benutzt.</span>`;
+      current = null;
+      updateCounters();
+      applyKeyModeUI();
+      setTimeout(nextWord, 350);
+      return;
+    }
+  }
+
+  function showHint() {
+    if (!current || keyMode !== "earth") return;
+    const hint = getHintForCurrent();
+    if (!hint) return;
+
+    if (!hint.allowed) {
+      elFeedback.innerHTML = `<span class="muted">🌍 ${hint.text}</span>`;
+      return;
+    }
+    elFeedback.innerHTML = `<span class="muted">🌍 ${hint.text}</span>`;
+  }
+
+  // =========================
+  // Words modal parsing
+  // =========================
+  function parseWords(text) {
+    const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const out = [];
+    for (const line of lines) {
+      // allow separators: = ; - →
+      const sepMatch = line.match(/(.+?)(=|;|->|→|-)(.+)/);
+      if (!sepMatch) continue;
+      const left = sepMatch[1].trim();
+      const right = sepMatch[3].trim();
+      if (!left || !right) continue;
+      out.push({ de: left, en: right });
+    }
+    return out;
+  }
+
+  function openModal(overlay){ overlay.style.display = "flex"; }
+  function closeModal(overlay){ overlay.style.display = "none"; }
+
+  function refreshKeyCardsActive() {
+    [...keysGrid.querySelectorAll(".keyCard")].forEach(card => {
+      card.classList.toggle("activeKey", card.dataset.key === keyMode);
+    });
+  }
+
+  // =========================
+  // Events
+  // =========================
+  document.getElementById('btnNext').addEventListener('click', () => {
+    if (pool.length === 0 && !current) startRound(false);
+    nextWord();
+  });
+
+  document.getElementById('btnReveal').addEventListener('click', reveal);
+  document.getElementById('btnHint').addEventListener('click', showHint);
+  document.getElementById('btnSkip').addEventListener('click', doSkip);
+
+  document.getElementById('btnShuffle').addEventListener('click', () => {
+    startRound(false);
+    nextWord();
+  });
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    startRound(true);
+    elPrompt.textContent = "Klicke „Start / Nächstes“";
+    elAnswer.value = "";
+  });
+
+  elMode.addEventListener('change', () => {
+    setLabels();
+    startRound(false);
+    elPrompt.textContent = "Klicke „Start / Nächstes“";
+    elAnswer.value = "";
+  });
+
+  elAnswer.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') checkAnswer();
+  });
+
+  // Key modal
+  document.getElementById('btnKeyLock').addEventListener('click', () => {
+    refreshKeyCardsActive();
+    openModal(overlayKey);
+  });
+  document.getElementById('closeKey').addEventListener('click', () => closeModal(overlayKey));
+  overlayKey.addEventListener('click', (e) => { if (e.target === overlayKey) closeModal(overlayKey); });
+
+  keysGrid.addEventListener('click', (e) => {
+    const card = e.target.closest(".keyCard");
+    if (!card) return;
+
+    keyMode = card.dataset.key;
+    saveKeyMode(keyMode);
+
+    // reset mode-specific stuff
+    stopFireTimer();
+    if (keyMode !== "normal") { streak = 0; normalKeys = 0; }
+    chooseEarthTipWords();
+
+    refreshKeyCardsActive();
+    closeModal(overlayKey);
+
+    applyKeyModeUI();
+    updateCounters();
+
+    // If a question is currently running, fire timer should restart
+    if (current && keyMode === "fire") startFireTimer();
+  });
+
+  // Words modal
+  document.getElementById('btnEditWords').addEventListener('click', () => {
+    // prefill
+    wordsText.value = vocab.map(v => `${v.de} = ${v.en}`).join("\n");
+    openModal(overlayWords);
+  });
+  document.getElementById('closeWords').addEventListener('click', () => closeModal(overlayWords));
+  overlayWords.addEventListener('click', (e) => { if (e.target === overlayWords) closeModal(overlayWords); });
+
+  document.getElementById('btnSaveWords').addEventListener('click', () => {
+    const arr = parseWords(wordsText.value);
+    if (arr.length === 0) {
+      alert("Keine gültigen Zeilen gefunden. Beispiel: Apfel = apple");
+      return;
+    }
+    saveVocab(arr);
+    vocab = loadVocab();
+    startRound(true);
+    closeModal(overlayWords);
+  });
+
+  document.getElementById('btnClearWords').addEventListener('click', () => {
+    clearVocab();
+    vocab = loadVocab();
+    startRound(true);
+    closeModal(overlayWords);
+  });
+
+  // =========================
+  // Init
+  // =========================
+  startRound(true);
+  updateCounters();
+  refreshKeyCardsActive();
+</script>
+</body>
+</html>
